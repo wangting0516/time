@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>臺灣標準時間 & 分貝警示大猩猩</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Smooth Background Transitions */
+        .bg-transition {
+            transition: background-color 0.5s ease, color 0.4s ease;
+        }
+
+        /* Floating Zzz Animation */
+        @keyframes zzzFloat {
+            0% { transform: translate(0, 0) scale(0.6) rotate(-10deg); opacity: 0; }
+            50% { opacity: 0.9; }
+            100% { transform: translate(45px, -75px) scale(1.4) rotate(15deg); opacity: 0; }
+        }
+        .zzz-1 { animation: zzzFloat 2.8s infinite ease-out 0s; }
+        .zzz-2 { animation: zzzFloat 2.8s infinite ease-out 0.9s; }
+        .zzz-3 { animation: zzzFloat 2.8s infinite ease-out 1.8s; }
+
+        /* Twinkling Stars Animation */
+        @keyframes starTwinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .star-twinkle { animation: starTwinkle 2s infinite ease-in-out; }
+
+        /* Falling Star Explosion Animation for >=70dB */
+        @keyframes starFall {
+            0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(300px) rotate(360deg); opacity: 0; }
+        }
+        .animate-star-fall { animation: starFall 0.8s infinite linear; }
+
+        /* Sleeping Breathing */
+        @keyframes gorillaSleep {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.03) translateY(-6px); }
+        }
+        .animate-gorilla-sleep { animation: gorillaSleep 4s ease-in-out infinite; }
+
+        /* Annoyed Shake */
+        @keyframes gorillaAnnoyed {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-6px, 3px) rotate(-3deg); }
+            40% { transform: translate(6px, -3px) rotate(3deg); }
+            60% { transform: translate(-5px, -2px) rotate(-2deg); }
+            80% { transform: translate(5px, 2px) rotate(2deg); }
+        }
+        .animate-gorilla-annoyed { animation: gorillaAnnoyed 0.3s infinite ease-in-out; }
+
+        /* Violent Explosion / Rage Animation */
+        @keyframes gorillaRage {
+            0% { transform: scale(1) rotate(0deg) translateY(0); }
+            25% { transform: scale(1.12) rotate(-6deg) translateY(-12px); }
+            50% { transform: scale(0.92) rotate(6deg) translateY(6px); }
+            75% { transform: scale(1.18) rotate(-8deg) translateY(-14px); }
+            100% { transform: scale(1) rotate(0deg) translateY(0); }
+        }
+        .animate-gorilla-rage { animation: gorillaRage 0.12s infinite ease-in-out; }
+
+        /* Pulse Animation for Star Fall / 降星 Badge */
+        @keyframes pulseStarFall {
+            0%, 100% { filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.9)); transform: scale(1) rotate(-8deg); }
+            50% { filter: drop-shadow(0 0 45px rgba(255, 215, 0, 1)); transform: scale(1.12) rotate(-4deg); }
+        }
+        .animate-pulse-starfall { animation: pulseStarFall 0.35s infinite alternate ease-in-out; }
+
+        /* Glassmorphism Styling */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .db-badge-glow { box-shadow: 0 0 25px rgba(52, 211, 153, 0.4); }
+    </style>
+</head>
+<body id="mainBody" class="bg-transition bg-slate-950 text-white min-h-screen flex flex-col justify-between items-center relative overflow-hidden p-3 sm:p-5">
+
+    <!-- Background Stars Overlay -->
+    <div id="bgStars" class="absolute inset-0 pointer-events-none z-0">
+        <i class="fa-solid fa-star absolute top-12 left-10 text-amber-300 text-sm star-twinkle"></i>
+        <i class="fa-solid fa-star absolute top-24 right-16 text-yellow-200 text-xs star-twinkle" style="animation-delay: 0.5s;"></i>
+        <i class="fa-solid fa-star absolute top-1/3 left-1/4 text-amber-100 text-base star-twinkle" style="animation-delay: 1s;"></i>
+        <i class="fa-solid fa-star absolute top-2/3 right-1/3 text-amber-300 text-xs star-twinkle" style="animation-delay: 1.5s;"></i>
+        <i class="fa-solid fa-star absolute bottom-20 left-16 text-yellow-300 text-sm star-twinkle" style="animation-delay: 0.8s;"></i>
+    </div>
+
+    <header class="w-full max-w-4xl z-10 flex flex-col items-center mt-1">
+        <div class="glass-card rounded-2xl p-4 sm:p-5 w-full text-center shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-center gap-2 mb-1">
+                <span class="inline-block w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                <span class="text-xs sm:text-sm font-bold tracking-widest text-emerald-300 uppercase">臺灣標準時間 (Taiwan Standard Time)</span>
+                <span class="bg-emerald-900/60 text-emerald-300 text-xs px-2.5 py-0.5 rounded-full font-mono border border-emerald-500/30">UTC +8</span>
+            </div>
+
+            <!-- Digital Clock Display with Milliseconds -->
+            <div class="flex items-baseline justify-center gap-1 sm:gap-2 my-1">
+                <div id="timeDisplay" class="text-4xl sm:text-6xl md:text-7xl font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-100 drop-shadow-md">
+                    00:00:00
+                </div>
+                <div id="msDisplay" class="text-lg sm:text-2xl font-mono font-bold text-amber-300/80 w-12 text-left">
+                    .00
+                </div>
+            </div>
+
+            <!-- Date Display -->
+            <div id="dateDisplay" class="text-xs sm:text-base font-bold text-slate-300 tracking-wide">
+                ----年--月--日 星期-
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-3xl my-auto z-10 flex flex-col items-center justify-center relative py-2">
+
+        <!-- Status Alert Banner -->
+        <div id="statusBanner" class="mb-3 text-center px-5 py-2 rounded-full glass-card text-base sm:text-xl font-black tracking-wider transition-all duration-300 shadow-xl border">
+            <span id="statusIcon" class="mr-2">🌙</span>
+            <span id="statusText">夜空滿天星，大猩猩睡得很沉穩...</span>
+        </div>
+
+        <!-- Gorilla Display Container -->
+        <div class="relative w-72 h-72 sm:w-96 sm:h-96 flex items-center justify-center">
+
+            <!-- Side Decibel Badge -->
+            <div id="sideDbBadge" class="absolute -top-2 -right-2 sm:right-0 z-30 bg-slate-900/90 border-2 border-emerald-400 rounded-2xl px-4 py-2 flex flex-col items-center shadow-2xl db-badge-glow transition-all duration-200 transform rotate-3">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-300 tracking-wider">即時分貝</span>
+                <div class="flex items-baseline gap-0.5">
+                    <span id="badgeDbValue" class="text-3xl sm:text-4xl font-black font-mono text-emerald-400">20</span>
+                    <span class="text-xs font-bold text-emerald-300">dB</span>
+                </div>
+            </div>
+
+            <!-- Floating Zzz Effect -->
+            <div id="zzzContainer" class="absolute top-4 left-8 z-20 pointer-events-none font-black text-blue-300 select-none">
+                <span class="zzz-1 absolute text-2xl sm:text-3xl">Z</span>
+                <span class="zzz-2 absolute text-3xl sm:text-4xl left-4">z</span>
+                <span class="zzz-3 absolute text-4xl sm:text-5xl left-9">z</span>
+            </div>
+
+            <!-- Explosion Background Burst -->
+            <div id="explosionEffect" class="absolute inset-0 z-30 pointer-events-none hidden items-center justify-center">
+                <svg viewBox="0 0 200 200" class="w-full h-full animate-ping text-red-500/50">
+                    <path fill="currentColor" d="M100 0 L120 70 L190 40 L140 95 L200 130 L130 135 L150 200 L100 150 L50 200 L70 135 L0 130 L60 95 L10 40 L80 70 Z" />
+                </svg>
+            </div>
+
+            <!-- "降星！" (Falling Stars) Overlay Effect -->
+            <div id="starFallOverlay" class="absolute z-40 text-yellow-300 font-black text-6xl sm:text-8xl tracking-widest drop-shadow-[0_10px_15px_rgba(0,0,0,0.9)] animate-pulse-starfall hidden select-none border-8 border-red-600 bg-black/90 px-6 py-2 rounded-2xl flex items-center gap-3">
+                <i class="fa-solid fa-star-half-stroke text-red-500"></i>
+                <span>降星！</span>
+            </div>
+
+            <div id="gorillaWrapper" class="w-full h-full transition-transform duration-300 animate-gorilla-sleep flex items-center justify-center">
+                <svg id="gorillaSvg" viewBox="0 0 500 500" class="w-full h-full filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.7)]">
+                    <defs>
+                        <linearGradient id="furGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#334155" />
+                            <stop offset="100%" stop-color="#0F172A" />
+                        </linearGradient>
+
+                        <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#94A3B8" />
+                            <stop offset="100%" stop-color="#64748B" />
+                        </linearGradient>
+
+                        <linearGradient id="skinGradRage" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#FCA5A5" />
+                            <stop offset="100%" stop-color="#EF4444" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Ears -->
+                    <circle cx="160" cy="240" r="35" fill="url(#furGrad)" />
+                    <circle cx="340" cy="240" r="35" fill="url(#furGrad)" />
+                    <circle cx="160" cy="240" r="20" fill="url(#skinGrad)" />
+                    <circle cx="340" cy="240" r="20" fill="url(#skinGrad)" />
+
+                    <!-- Head Contour -->
+                    <path d="M160 180 C160 80, 340 80, 340 180 C370 230, 370 330, 340 380 C310 420, 190 420, 160 380 C130 330, 130 230, 160 180 Z" fill="url(#furGrad)" />
+
+                    <!-- Face Contour -->
+                    <path d="M190 190 C190 140, 310 140, 310 190 C330 220, 330 270, 310 290 C280 310, 220 310, 190 290 C170 270, 170 220, 190 190 Z" fill="url(#skinGrad)" id="faceSkin" />
+
+                    <!-- Snout -->
+                    <ellipse cx="250" cy="300" rx="75" ry="50" fill="url(#skinGrad)" id="muzzleSkin" />
+
+                    <!-- Nostrils -->
+                    <ellipse cx="230" cy="290" rx="8" ry="12" fill="#1E293B" />
+                    <ellipse cx="270" cy="290" rx="8" ry="12" fill="#1E293B" />
+
+                    <!-- Sleeping Nightcap with Star Pattern -->
+                    <g id="sleepCap">
+                        <path d="M 200 115 C 200 60, 300 40, 360 80 C 420 120, 420 180, 380 180 Z" fill="#3B82F6" />
+                        <circle cx="390" cy="180" r="20" fill="#FFFFFF" />
+                        <path d="M 210 110 Q 250 120 290 100" stroke="#93C5FD" stroke-width="12" stroke-linecap="round" fill="none" />
+                        <!-- Star Icon on Cap -->
+                        <polygon points="260,75 264,85 275,86 267,93 270,104 260,98 250,104 253,93 245,86 256,85" fill="#FDE047" />
+                    </g>
+
+                    <!-- Sleeping Eyes -->
+                    <g id="sleepEyes">
+                        <path d="M 195 215 Q 215 230 235 215" stroke="#1E293B" stroke-width="6" stroke-linecap="round" fill="none" />
+                        <path d="M 265 215 Q 285 230 305 215" stroke="#1E293B" stroke-width="6" stroke-linecap="round" fill="none" />
+                    </g>
+
+                    <!-- Annoyed Eyes (50 - 69 dB) -->
+                    <g id="annoyedEyes" class="hidden">
+                        <circle cx="215" cy="215" r="18" fill="#FFFFFF" />
+                        <circle cx="220" cy="215" r="7" fill="#000000" />
+                        <path d="M 190 195 L 240 210" stroke="#000000" stroke-width="6" stroke-linecap="round" />
+
+                        <circle cx="285" cy="215" r="18" fill="#FFFFFF" />
+                        <circle cx="280" cy="215" r="7" fill="#000000" />
+                        <path d="M 310 195 L 260 210" stroke="#000000" stroke-width="6" stroke-linecap="round" />
+
+                        <!-- Sweat Drop -->
+                        <path d="M 330 180 Q 340 195 330 205 Q 320 195 330 180 Z" fill="#38BDF8" />
+                    </g>
+
+                    <!-- Rage Eyes (>= 70 dB) -->
+                    <g id="rageEyes" class="hidden">
+                        <polygon points="190,195 240,220 190,230" fill="#FFFFFF" />
+                        <polygon points="190,195 240,220 205,220" fill="#991B1B" />
+                        <circle cx="220" cy="215" r="4" fill="#FF0000" />
+
+                        <polygon points="310,195 260,220 310,230" fill="#FFFFFF" />
+                        <polygon points="310,195 260,220 295,220" fill="#991B1B" />
+                        <circle cx="280" cy="215" r="4" fill="#FF0000" />
+
+                        <path d="M 240 150 L 260 170 M 260 150 L 240 170" stroke="#EF4444" stroke-width="6" stroke-linecap="round" />
+                    </g>
+
+                    <!-- Sleep Mouth & Bubble -->
+                    <g id="sleepMouth">
+                        <ellipse cx="250" cy="330" rx="12" ry="8" fill="#1E293B" />
+                        <circle id="snotBubble" cx="262" cy="335" r="14" fill="#60A5FA" opacity="0.75" stroke="#93C5FD" stroke-width="2" />
+                    </g>
+
+                    <!-- Annoyed Mouth -->
+                    <path id="annoyedMouth" d="M 215 335 Q 250 315 285 335" stroke="#1E293B" stroke-width="7" fill="none" stroke-linecap="round" class="hidden" />
+
+                    <!-- Rage Mouth -->
+                    <g id="rageMouth" class="hidden">
+                        <path d="M 200 320 Q 250 300 300 320 Q 250 370 200 320 Z" fill="#450A0A" stroke="#FEF08A" stroke-width="4" />
+                        <polygon points="220,312 230,328 240,314" fill="#FFFFFF" />
+                        <polygon points="260,314 270,328 280,312" fill="#FFFFFF" />
+                        <polygon points="235,348 250,335 265,348" fill="#FFFFFF" />
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-3xl z-10 mb-1">
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3">
+
+            <!-- Control Card Header -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div id="micIconBg" class="p-3 bg-indigo-600/40 rounded-xl border border-indigo-400/30 text-indigo-300">
+                        <i class="fa-solid fa-microphone-lines text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base sm:text-lg font-bold text-white">實時麥克風分貝偵測感應器</h2>
+                            <span id="micStatusDot" class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                        </div>
+                        <p id="micStatusText" class="text-xs text-slate-400">尚未連線麥克風（請點擊下方按鈕啟動）</p>
+                    </div>
+                </div>
+
+                <!-- Digital Readout -->
+                <div class="flex items-baseline gap-1 bg-slate-900/90 px-4 py-1.5 rounded-xl border border-slate-700">
+                    <span id="dbValueDisplay" class="text-3xl font-black font-mono text-emerald-400">20</span>
+                    <span class="text-xs font-bold text-slate-400">dB</span>
+                </div>
+            </div>
+
+            <!-- Visual Decibel Progress Bar -->
+            <div class="space-y-1">
+                <div class="relative w-full h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700 p-0.5">
+                    <div id="dbProgressBar" class="h-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-500 rounded-full transition-all duration-100 w-[20%]"></div>
+                </div>
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 px-1">
+                    <span class="text-emerald-400">0 dB (極安靜)</span>
+                    <span class="text-blue-300">30 dB (沉睡星空)</span>
+                    <span class="text-yellow-400">50 dB (不要吵!)</span>
+                    <span class="text-red-400">70 dB+ (爆炸降星!)</span>
+                    <span>100 dB</span>
+                </div>
+            </div>
+
+            <!-- Controls Console -->
+            <div class="pt-2 border-t border-slate-700/60 flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                    <!-- Toggle Button -->
+                    <button id="toggleMicBtn" class="w-full sm:w-1/2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 border border-indigo-400/40 text-sm">
+                        <i class="fa-solid fa-microphone"></i>
+                        <span>🎙️ 開啟麥克風感應</span>
+                    </button>
+
+                    <!-- Device Selection Selector -->
+                    <div class="w-full sm:w-1/2 flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <i class="fa-solid fa-headset text-slate-400 text-xs"></i>
+                        <select id="audioDeviceSelect" class="w-full bg-transparent text-xs text-slate-200 font-bold focus:outline-none cursor-pointer">
+                            <option value="" class="bg-slate-900 text-slate-300">預設麥克風裝置</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sensitivity Gain & Manual Sliders -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-300">
+                    <!-- Gain Multiplier Slider -->
+                    <div class="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-xl border border-slate-800">
+                        <i class="fa-solid fa-bolt text-yellow-400"></i>
+                        <span class="whitespace-nowrap">靈敏度: <span id="sensitivityVal" class="text-yellow-400 font-mono">2.5x</span></span>
+                        <input id="sensitivitySlider" type="range" min="1.0" max="10.0" step="0.5" value="2.5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-400">
+                    </div>
+
+                    <!-- Manual Simulation Slider -->
+                    <div class="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-xl border border-slate-800">
+                        <i class="fa-solid fa-sliders text-sky-400"></i>
+                        <span class="whitespace-nowrap">手動測試:</span>
+                        <input id="dbSlider" type="range" min="0" max="100" value="20" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-400">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- 1. Taiwan Standard Time (UTC+8) Clock Engine ---
+        function updateTaiwanClock() {
+            const now = new Date();
+            
+            const timeOptions = {
+                timeZone: 'Asia/Taipei',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+
+            const dateOptions = {
+                timeZone: 'Asia/Taipei',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                weekday: 'long'
+            };
+
+            const timeStr = new Intl.DateTimeFormat('zh-TW', timeOptions).format(now);
+            const msStr = '.' + String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+            const dateParts = new Intl.DateTimeFormat('zh-TW', dateOptions).formatToParts(now);
+
+            let year = '', month = '', day = '', weekday = '';
+            for (const part of dateParts) {
+                if (part.type === 'year') year = part.value;
+                if (part.type === 'month') month = part.value;
+                if (part.type === 'day') day = part.value;
+                if (part.type === 'weekday') weekday = part.value;
+            }
+
+            document.getElementById('timeDisplay').innerText = timeStr;
+            document.getElementById('msDisplay').innerText = msStr;
+            document.getElementById('dateDisplay').innerText = `${year}年${month}月${day}日 ${weekday}`;
+        }
+
+        // --- 2. Decibel & UI State Logic ---
+        let currentDb = 20;
+        let smoothedDb = 20;
+        let sensitivityGain = 2.5;
+        let isMicActive = false;
+
+        let audioContext = null;
+        let analyser = null;
+        let microphoneStream = null;
+        let animationFrameId = null;
+
+        // DOM Elements
+        const body = document.getElementById('mainBody');
+        const dbValueDisplay = document.getElementById('dbValueDisplay');
+        const badgeDbValue = document.getElementById('badgeDbValue');
+        const sideDbBadge = document.getElementById('sideDbBadge');
+        const dbProgressBar = document.getElementById('dbProgressBar');
+        const dbSlider = document.getElementById('dbSlider');
+        const sensitivitySlider = document.getElementById('sensitivitySlider');
+        const sensitivityVal = document.getElementById('sensitivityVal');
+        const audioDeviceSelect = document.getElementById('audioDeviceSelect');
+
+        const statusBanner = document.getElementById('statusBanner');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        const micStatusText = document.getElementById('micStatusText');
+        const micStatusDot = document.getElementById('micStatusDot');
+        const micIconBg = document.getElementById('micIconBg');
+
+        // Gorilla & Star Components
+        const gorillaWrapper = document.getElementById('gorillaWrapper');
+        const faceSkin = document.getElementById('faceSkin');
+        const muzzleSkin = document.getElementById('muzzleSkin');
+        const zzzContainer = document.getElementById('zzzContainer');
+        const sleepCap = document.getElementById('sleepCap');
+        const sleepEyes = document.getElementById('sleepEyes');
+        const annoyedEyes = document.getElementById('annoyedEyes');
+        const rageEyes = document.getElementById('rageEyes');
+        const sleepMouth = document.getElementById('sleepMouth');
+        const annoyedMouth = document.getElementById('annoyedMouth');
+        const rageMouth = document.getElementById('rageMouth');
+        const explosionEffect = document.getElementById('explosionEffect');
+        const starFallOverlay = document.getElementById('starFallOverlay');
+
+        function updateDecibelUI(targetDb) {
+            currentDb = Math.round(targetDb);
+            
+            dbValueDisplay.innerText = currentDb;
+            badgeDbValue.innerText = currentDb;
+            dbProgressBar.style.width = `${Math.min(100, Math.max(0, currentDb))}%`;
+
+            gorillaWrapper.classList.remove('animate-gorilla-sleep', 'animate-gorilla-annoyed', 'animate-gorilla-rage');
+            body.className = 'bg-transition min-h-screen flex flex-col justify-between items-center relative overflow-hidden p-3 sm:p-5 ';
+
+            if (currentDb < 30) {
+                // STATE 1: Deep Sleep (< 30 dB)
+                body.classList.add('bg-slate-950');
+                
+                statusBanner.className = "mb-3 text-center px-5 py-2 rounded-full glass-card text-base sm:text-xl font-black tracking-wider transition-all duration-300 shadow-xl border border-blue-500/30 text-blue-200";
+                statusIcon.innerText = "⭐";
+                statusText.innerText = "夜空滿天星，大猩猩睡得很沉穩...";
+
+                faceSkin.setAttribute('fill', 'url(#skinGrad)');
+                muzzleSkin.setAttribute('fill', 'url(#skinGrad)');
+                gorillaWrapper.classList.add('animate-gorilla-sleep');
+
+                sideDbBadge.className = "absolute -top-2 -right-2 sm:right-0 z-30 bg-slate-900/90 border-2 border-emerald-400 rounded-2xl px-4 py-2 flex flex-col items-center shadow-2xl db-badge-glow transition-all duration-200 transform rotate-3";
+                badgeDbValue.className = "text-3xl sm:text-4xl font-black font-mono text-emerald-400";
+
+                zzzContainer.style.display = 'block';
+                sleepCap.style.display = 'block';
+                sleepEyes.style.display = 'block';
+                sleepMouth.style.display = 'block';
+                
+                annoyedEyes.classList.add('hidden');
+                rageEyes.classList.add('hidden');
+                annoyedMouth.classList.add('hidden');
+                rageMouth.classList.add('hidden');
+                explosionEffect.style.display = 'none';
+                starFallOverlay.classList.add('hidden');
+
+            } else if (currentDb >= 30 && currentDb < 50) {
+                // STATE 2: Light Sleep (30 - 49 dB)
+                body.classList.add('bg-slate-900');
+
+                statusBanner.className = "mb-3 text-center px-5 py-2 rounded-full glass-card text-base sm:text-xl font-black tracking-wider transition-all duration-300 shadow-xl border border-amber-500/30 text-amber-200";
+                statusIcon.innerText = "🌟";
+                statusText.innerText = "星光閃爍... 微弱聲音中安穩入睡";
+
+                faceSkin.setAttribute('fill', 'url(#skinGrad)');
+                muzzleSkin.setAttribute('fill', 'url(#skinGrad)');
+                gorillaWrapper.classList.add('animate-gorilla-sleep');
+
+                sideDbBadge.className = "absolute -top-2 -right-2 sm:right-0 z-30 bg-slate-900/90 border-2 border-blue-400 rounded-2xl px-4 py-2 flex flex-col items-center shadow-2xl transition-all duration-200 transform rotate-3";
+                badgeDbValue.className = "text-3xl sm:text-4xl font-black font-mono text-blue-400";
+
+                zzzContainer.style.display = 'block';
+                sleepCap.style.display = 'block';
+                sleepEyes.style.display = 'block';
+                sleepMouth.style.display = 'block';
+
+                annoyedEyes.classList.add('hidden');
+                rageEyes.classList.add('hidden');
+                annoyedMouth.classList.add('hidden');
+                rageMouth.classList.add('hidden');
+                explosionEffect.style.display = 'none';
+                starFallOverlay.classList.add('hidden');
+
+            } else if (currentDb >= 50 && currentDb < 70) {
+                // STATE 3: Annoyed Waking (50 - 69 dB)
+                body.classList.add('bg-amber-950');
+
+                statusBanner.className = "mb-3 text-center px-5 py-2 rounded-full glass-card text-base sm:text-xl font-black tracking-wider transition-all duration-300 shadow-xl border border-orange-500/50 text-orange-300 animate-bounce";
+                statusIcon.innerText = "😤";
+                statusText.innerText = "不要吵！聽到噪音了，大猩猩睡得不安穩！";
+
+                faceSkin.setAttribute('fill', 'url(#skinGrad)');
+                muzzleSkin.setAttribute('fill', 'url(#skinGrad)');
+                gorillaWrapper.classList.add('animate-gorilla-annoyed');
+
+                sideDbBadge.className = "absolute -top-2 -right-2 sm:right-0 z-30 bg-slate-900/90 border-2 border-yellow-400 rounded-2xl px-4 py-2 flex flex-col items-center shadow-2xl transition-all duration-200 transform rotate-6 scale-105";
+                badgeDbValue.className = "text-3xl sm:text-4xl font-black font-mono text-yellow-400";
+
+                zzzContainer.style.display = 'none';
+                sleepCap.style.display = 'none';
+                sleepEyes.style.display = 'none';
+                sleepMouth.style.display = 'none';
+
+                annoyedEyes.classList.remove('hidden');
+                annoyedMouth.classList.remove('hidden');
+
+                rageEyes.classList.add('hidden');
+                rageMouth.classList.add('hidden');
+                explosionEffect.style.display = 'none';
+                starFallOverlay.classList.add('hidden');
+
+            } else {
+                // STATE 4: Exploding / Falling Stars (>= 70 dB)
+                body.classList.add('bg-red-950');
+
+                statusBanner.className = "mb-3 text-center px-5 py-2 rounded-full bg-red-600 text-white text-base sm:text-xl font-black tracking-wider transition-all duration-300 shadow-2xl border-2 border-yellow-300 animate-pulse";
+                statusIcon.innerText = "💥";
+                statusText.innerText = "太吵了！大猩猩爆炸抓狂，夜空降星啦！";
+
+                faceSkin.setAttribute('fill', 'url(#skinGradRage)');
+                muzzleSkin.setAttribute('fill', 'url(#skinGradRage)');
+                gorillaWrapper.classList.add('animate-gorilla-rage');
+
+                sideDbBadge.className = "absolute -top-2 -right-2 sm:right-0 z-30 bg-red-950/90 border-2 border-red-500 rounded-2xl px-4 py-2 flex flex-col items-center shadow-2xl transition-all duration-200 transform -rotate-6 scale-110 animate-pulse";
+                badgeDbValue.className = "text-3xl sm:text-4xl font-black font-mono text-red-500";
+
+                zzzContainer.style.display = 'none';
+                sleepCap.style.display = 'none';
+                sleepEyes.style.display = 'none';
+                sleepMouth.style.display = 'none';
+                annoyedEyes.classList.add('hidden');
+                annoyedMouth.classList.add('hidden');
+
+                rageEyes.classList.remove('hidden');
+                rageMouth.classList.remove('hidden');
+                explosionEffect.style.display = 'flex';
+                starFallOverlay.classList.remove('hidden');
+            }
+        }
+
+        // Sliders Listeners
+        dbSlider.addEventListener('input', (e) => {
+            if (!isMicActive) {
+                updateDecibelUI(e.target.value);
+            }
+        });
+
+        sensitivitySlider.addEventListener('input', (e) => {
+            sensitivityGain = parseFloat(e.target.value);
+            sensitivityVal.innerText = `${sensitivityGain.toFixed(1)}x`;
+        });
+
+        // --- 3. Audio Device Enumeration ---
+        async function getAudioDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                
+                audioDeviceSelect.innerHTML = '<option value="" class="bg-slate-900 text-slate-300">預設麥克風裝置</option>';
+                audioInputs.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.className = "bg-slate-900 text-slate-200";
+                    option.text = device.label || `麥克風裝置 ${index + 1}`;
+                    audioDeviceSelect.appendChild(option);
+                });
+            } catch (err) {
+                console.log("Could not enumerate audio devices:", err);
+            }
+        }
+
+        // --- 4. Web Audio Real-Time Processing Engine ---
+        async function startMicrophone() {
+            try {
+                if (isMicActive) stopMicrophone();
+
+                const deviceId = audioDeviceSelect.value;
+                const audioConstraints = {
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        ...(deviceId ? { deviceId: { exact: deviceId } } : {})
+                    },
+                    video: false
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                microphoneStream = stream;
+
+                getAudioDevices();
+
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!audioContext) {
+                    audioContext = new AudioContextClass();
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.3;
+
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                isMicActive = true;
+                
+                micStatusText.innerText = "🎙️ 麥克風感應中，請對著麥克風出聲！";
+                micStatusText.className = "text-xs text-emerald-400 font-bold animate-pulse";
+                micStatusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block";
+                micIconBg.className = "p-3 bg-emerald-600/40 rounded-xl border border-emerald-400/40 text-emerald-300 animate-pulse";
+
+                const btn = document.getElementById('toggleMicBtn');
+                btn.className = "w-full sm:w-1/2 py-2.5 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 transition-all text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 border border-rose-400/40 text-sm";
+                btn.innerHTML = `<i class="fa-solid fa-microphone-slash"></i><span>關閉麥克風感應</span>`;
+
+                processAudio();
+
+            } catch (err) {
+                console.error("Microphone Access Error:", err);
+                alert("無法存取麥克風！請確認瀏覽器已給予麥克風權限。\n\n提示：您可使用右下角手動測試滑桿來即時體驗！");
+                stopMicrophone();
+            }
+        }
+
+        function stopMicrophone() {
+            if (microphoneStream) {
+                microphoneStream.getTracks().forEach(track => track.stop());
+                microphoneStream = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+
+            isMicActive = false;
+            
+            micStatusText.innerText = "尚未連線麥克風（請點擊下方按鈕啟動）";
+            micStatusText.className = "text-xs text-slate-400";
+            micStatusDot.className = "w-2.5 h-2.5 rounded-full bg-red-500 inline-block";
+            micIconBg.className = "p-3 bg-indigo-600/40 rounded-xl border border-indigo-400/30 text-indigo-300";
+
+            const btn = document.getElementById('toggleMicBtn');
+            btn.className = "w-full sm:w-1/2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 border border-indigo-400/40 text-sm";
+            btn.innerHTML = `<i class="fa-solid fa-microphone"></i><span>🎙️ 開啟麥克風感應</span>`;
+        }
+
+        function processAudio() {
+            if (!isMicActive || !analyser) return;
+
+            const timeDomainData = new Uint8Array(analyser.fftSize);
+            const freqData = new Uint8Array(analyser.frequencyBinCount);
+
+            analyser.getByteTimeDomainData(timeDomainData);
+            analyser.getByteFrequencyData(freqData);
+
+            let sumSquares = 0;
+            for (let i = 0; i < timeDomainData.length; i++) {
+                const norm = (timeDomainData[i] - 128) / 128;
+                sumSquares += norm * norm;
+            }
+            const rms = Math.sqrt(sumSquares / timeDomainData.length);
+
+            let freqSum = 0;
+            for (let i = 0; i < freqData.length; i++) {
+                freqSum += freqData[i];
+            }
+            const freqAvg = freqSum / freqData.length;
+
+            let intensity = (rms * 2.5) + (freqAvg / 255.0);
+            const microNoiseFloor = 18 + Math.random() * 5;
+
+            let calculatedDb = microNoiseFloor + (intensity * 60 * sensitivityGain);
+            calculatedDb = Math.min(100, Math.max(15, calculatedDb));
+
+            smoothedDb += (calculatedDb - smoothedDb) * 0.3;
+
+            dbSlider.value = Math.round(smoothedDb);
+            updateDecibelUI(smoothedDb);
+
+            animationFrameId = requestAnimationFrame(processAudio);
+        }
+
+        document.getElementById('toggleMicBtn').addEventListener('click', () => {
+            if (isMicActive) {
+                stopMicrophone();
+            } else {
+                startMicrophone();
+            }
+        });
+
+        audioDeviceSelect.addEventListener('change', () => {
+            if (isMicActive) {
+                startMicrophone();
+            }
+        });
+
+        window.onload = function () {
+            updateTaiwanClock();
+            setInterval(updateTaiwanClock, 40);
+            getAudioDevices();
+            updateDecibelUI(20);
+        };
+    </script>
+</body>
+</html>
