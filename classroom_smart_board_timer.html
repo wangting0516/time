@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國小教室智慧大屏 - 學生任務獨立計時管理系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts 可愛清晰圓潤字體 (Zen Maru Gothic & Fredoka) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Zen Maru Gothic"', 'sans-serif'],
+                        num: ['"Fredoka"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* 呼吸黃光燈效 (進行中) */
+        @keyframes yellow-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(234, 179, 8, 0.1); }
+        }
+        .status-running {
+            animation: yellow-pulse 2s infinite ease-in-out;
+            background-color: #fef9c3 !important; /* 活力黃背景 */
+            border-color: #eab308 !important;
+        }
+
+        /* 閃爍紅光警告 (超時失敗) */
+        @keyframes red-flash {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(244, 63, 94, 0.6); 
+                transform: scale(1.02);
+            }
+            50% { 
+                box-shadow: 0 0 5px rgba(244, 63, 94, 0.2); 
+                transform: scale(0.98);
+            }
+        }
+        .status-failed {
+            animation: red-flash 1s infinite ease-in-out;
+            background-color: #ffe4e6 !important; /* 珊瑚紅背景 */
+            border-color: #f43f5e !important;
+        }
+
+        /* 草綠色完成狀態 */
+        .status-completed {
+            background-color: #dcfce7 !important; /* 草綠背景 */
+            border-color: #22c55e !important;
+        }
+
+        /* 天空藍預設狀態 */
+        .status-default {
+            background-color: #e0f2fe !important; /* 天空藍背景 */
+            border-color: #38bdf8 !important;
+        }
+
+        /* 環形進度條動畫 */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s linear, stroke 0.3s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* 美化 Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-3 sm:p-5 text-slate-700">
+
+    <!-- 頂部大屏控制儀表板 HEADER -->
+    <header class="bg-white border-2 border-slate-200 rounded-2xl p-3 px-5 shadow-sm flex flex-wrap justify-between items-center gap-4 shrink-0">
+        
+        <!-- 左側：標題與狀態簡介 -->
+        <div class="flex items-center space-x-3">
+            <div class="bg-sky-500 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-stopwatch text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-wide flex items-center gap-2">
+                    學生任務獨立計時管理系統
+                </h1>
+                <p class="text-xs text-slate-500 font-bold flex items-center gap-1">
+                    智慧大屏專用版
+                </p>
+            </div>
+        </div>
+
+        <!-- 中間：四種顏色狀態數據卡片 -->
+        <div class="hidden lg:flex items-center bg-slate-50 px-5 py-2 rounded-xl border border-slate-200 gap-6">
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-sky-400 border border-sky-500"></span>
+                <span class="text-xs font-bold text-slate-600">未開始:</span>
+                <span id="stat-default" class="font-num text-lg font-bold text-sky-600">30</span>
+            </div>
+            <div class="h-4 w-[1px] bg-slate-300"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-yellow-400 border border-yellow-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-600">進行中:</span>
+                <span id="stat-running" class="font-num text-lg font-bold text-yellow-600">0</span>
+            </div>
+            <div class="h-4 w-[1px] bg-slate-300"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-rose-500 border border-rose-600"></span>
+                <span class="text-xs font-bold text-slate-600">任務失敗/時間到:</span>
+                <span id="stat-failed" class="font-num text-lg font-bold text-rose-600">0</span>
+            </div>
+            <div class="h-4 w-[1px] bg-slate-300"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-600"></span>
+                <span class="text-xs font-bold text-slate-600">任務完成:</span>
+                <span id="stat-completed" class="font-num text-lg font-bold text-emerald-600">0</span>
+            </div>
+        </div>
+
+        <!-- 右側：全體控制與批次設定按鈕 -->
+        <div class="flex items-center flex-wrap gap-2">
+            <button onclick="startAllTimers()" class="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-xl shadow-sm border-b-2 border-yellow-600 active:translate-y-0.5 text-xs sm:text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-play"></i> 全體開始
+            </button>
+            <button onclick="pauseAllTimers()" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl shadow-sm border-b-2 border-slate-400 active:translate-y-0.5 text-xs sm:text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-pause"></i> 全體暫停
+            </button>
+            <button onclick="resetAllTimers()" class="px-3.5 py-2 bg-sky-200 hover:bg-sky-300 text-sky-900 font-bold rounded-xl shadow-sm border-b-2 border-sky-400 active:translate-y-0.5 text-xs sm:text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-rotate-left"></i> 全體重置
+            </button>
+            <div class="h-6 w-[1px] bg-slate-300 mx-1 hidden sm:block"></div>
+            <button onclick="openGlobalPresetModal()" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl shadow-sm border-b-2 border-indigo-700 active:translate-y-0.5 text-xs sm:text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-sliders"></i> 統一任務與時間
+            </button>
+            <button onclick="openManageStudentsModal()" class="px-3.5 py-2 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl shadow-sm border-b-2 border-purple-700 active:translate-y-0.5 text-xs sm:text-sm flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-users"></i> 人數名單
+            </button>
+        </div>
+    </header>
+
+    <!-- 主區塊：1~30 號預設圓形號碼格 (全班一頁全覽) -->
+    <main class="flex-1 my-3 overflow-y-auto px-1 flex flex-col justify-center">
+        <div id="grid-container" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 sm:gap-4 max-w-[1920px] mx-auto w-full items-center justify-center py-2">
+            <!-- 號碼圓格由 JS 動態生成 -->
+        </div>
+
+        <!-- 無學生提示 -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+            <i class="fa-solid fa-users-slash text-5xl text-slate-300 mb-3"></i>
+            <p class="text-slate-500 font-bold text-lg mb-4">目前沒有號碼格，請點擊下方重新生成名單</p>
+            <button onclick="quickGenerate(30)" class="px-5 py-2.5 bg-sky-500 text-white font-bold rounded-xl shadow-md hover:bg-sky-600 transition">
+                一鍵建立 1~30 號
+            </button>
+        </div>
+    </main>
+
+    <!-- 底部狀態對照說明日 -->
+    <footer class="bg-white border border-slate-200 rounded-xl p-2.5 px-5 flex flex-wrap justify-between items-center text-xs text-slate-600 font-bold shrink-0 shadow-sm">
+        <div class="flex items-center gap-4 flex-wrap">
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-sky-100 border-2 border-sky-400 inline-block"></span> 🔵 未開始 (天空藍)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-yellow-200 border-2 border-yellow-500 inline-block animate-pulse"></span> 🟡 進行中 (活力黃)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-rose-200 border-2 border-rose-500 inline-block"></span> 🔴 任務失敗/時間到 (珊瑚紅)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-emerald-200 border-2 border-emerald-500 inline-block"></span> 🟢 任務完成 (草綠色)</span>
+        </div>
+        <div class="text-slate-500 font-normal hidden md:block">
+            💡 提示：點擊號碼格即可切換「開始倒數 ↔ 暫停」。按右上角 <i class="fa-solid fa-check text-emerald-600 font-bold"></i> 即可直接標記任務完成。
+        </div>
+    </footer>
+
+    <!-- MODAL 1: 批次統一設定任務與時間 -->
+    <div id="modal-global-preset" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-500"></i> 批次設定全班任務與時間
+                </h3>
+                <button onclick="closeModal('modal-global-preset')" class="text-slate-400 hover:text-slate-600 text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">統一任務標籤：</label>
+                    <select id="global-task-input" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 focus:border-indigo-500 focus:outline-none">
+                        <!-- 動態填充 -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">預設倒數時間：</label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="global-min" min="0" max="180" value="5" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 text-center font-num text-2xl font-bold text-slate-800 focus:outline-none">
+                        <span class="font-bold text-slate-600">分</span>
+                        <input type="number" id="global-sec" min="0" max="59" value="0" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 text-center font-num text-2xl font-bold text-slate-800 focus:outline-none">
+                        <span class="font-bold text-slate-600">秒</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 pt-1">
+                    <button onclick="setGlobalTimeQuick(1, 0)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">1 分鐘</button>
+                    <button onclick="setGlobalTimeQuick(3, 0)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">3 分鐘</button>
+                    <button onclick="setGlobalTimeQuick(5, 0)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">5 分鐘</button>
+                    <button onclick="setGlobalTimeQuick(10, 0)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">10 分鐘</button>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 pt-3 border-t">
+                <button onclick="closeModal('modal-global-preset')" class="px-4 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm">取消</button>
+                <button onclick="applyGlobalPreset()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow border-b-2 border-indigo-800 text-sm">套用全班</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: 個別號碼格微調設定 -->
+    <div id="modal-single-edit" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-gear text-sky-500"></i> <span id="single-title">01 號</span> 個別設定
+                </h3>
+                <button onclick="closeModal('modal-single-edit')" class="text-slate-400 hover:text-slate-600 text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <input type="hidden" id="single-student-id">
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">任務標籤：</label>
+                    <select id="single-task-select" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none">
+                        <!-- 動態填充 -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">時間調整：</label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="single-min" min="0" max="180" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 text-center font-num text-2xl font-bold text-slate-800 focus:outline-none">
+                        <span class="font-bold text-slate-600">分</span>
+                        <input type="number" id="single-sec" min="0" max="59" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 text-center font-num text-2xl font-bold text-slate-800 focus:outline-none">
+                        <span class="font-bold text-slate-600">秒</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 pt-1">
+                    <button onclick="addSingleMinutes(1)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">+ 1 分</button>
+                    <button onclick="addSingleMinutes(3)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">+ 3 分</button>
+                    <button onclick="addSingleMinutes(5)" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs border border-slate-300">+ 5 分</button>
+                    <button onclick="addSingleMinutes(-1)" class="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-xs border border-rose-200">- 1 分</button>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 pt-3 border-t">
+                <button onclick="closeModal('modal-single-edit')" class="px-4 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm">取消</button>
+                <button onclick="saveSingleEdit()" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow border-b-2 border-sky-800 text-sm">儲存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: 人數名單管理 -->
+    <div id="modal-manage-students" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-users text-purple-500"></i> 人數名單管理
+                </h3>
+                <button onclick="closeModal('modal-manage-students')" class="text-slate-400 hover:text-slate-600 text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">快速生成指定人數 (1 到 N 號)：</label>
+                    <div class="flex gap-3">
+                        <input type="number" id="gen-count" min="1" max="60" value="30" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 text-center font-num text-xl font-bold text-slate-800 focus:outline-none">
+                        <button onclick="applyQuickGenerate()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shrink-0 shadow border-b-2 border-purple-800 text-sm">
+                            重新生成名單
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t pt-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">單獨新增號碼/姓名：</label>
+                    <div class="flex gap-3">
+                        <input type="text" id="add-single-name" placeholder="例如: 31 號 或 小明" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none">
+                        <button onclick="addNewStudent()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shrink-0 shadow border-b-2 border-emerald-800 text-sm">
+                            新增學生
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end pt-3 border-t">
+                <button onclick="closeModal('modal-manage-students')" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-sm">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: 時間到/失敗 Alert 警示 -->
+    <div id="modal-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-rose-500 text-center animate-bounce">
+            <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-3 border-2 border-rose-300">
+                ⏰
+            </div>
+            <h2 class="text-3xl font-black text-rose-600 mb-1">叮咚！時間到了！</h2>
+            <p class="text-slate-500 font-bold text-xs mb-5">請檢查該位同學的任務進度喔～</p>
+
+            <div class="bg-rose-50 rounded-2xl p-4 border border-rose-200 mb-6">
+                <div id="alert-student-name" class="text-4xl font-num font-black text-rose-600 mb-2">01 號</div>
+                <div id="alert-task-name" class="inline-block px-4 py-1.5 bg-rose-500 text-white font-bold rounded-full text-base shadow">
+                    簽到
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="markAlertStudentCompleted()" class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-base rounded-xl shadow border-b-2 border-emerald-700">
+                    <i class="fa-solid fa-check mr-1"></i> 標記為完成
+                </button>
+                <button onclick="closeModal('modal-alert')" class="py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-base rounded-xl">
+                    知道了 (關閉)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 核心程式碼 -->
+    <script>
+        // State 狀態管理
+        let students = [];
+        // 預設任務清單 (已移除罰寫，預設包含簽到、完成聯絡簿等)
+        const taskPresets = ['簽到', '完成聯絡簿', '訂正作業', '課外閱讀', '自主學習', '愛班服務', '整理座位'];
+        let defaultTimeSeconds = 300; // 預設 5 分鐘
+        let defaultTaskName = '簽到';
+        let alertTargetStudentId = null;
+
+        // Web Audio API 清脆柔和「叮咚」音效
+        function playChime() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const now = ctx.currentTime;
+                
+                // 叮咚兩連音 (G5 -> C6)
+                const freqs = [783.99, 1046.50];
+                freqs.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (idx * 0.2));
+                    
+                    gain.gain.setValueAtTime(0.35, now + (idx * 0.2));
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + (idx * 0.2) + 0.6);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start(now + (idx * 0.2));
+                    osc.stop(now + (idx * 0.2) + 0.6);
+                });
+            } catch (e) {
+                console.log("Audio play blocked/unsupported", e);
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            quickGenerate(30);
+            setInterval(timerTick, 1000);
+        };
+
+        // 一鍵生成指定數量學生名單 (預設 1~30 號)
+        function quickGenerate(count) {
+            students = [];
+            for (let i = 1; i <= count; i++) {
+                const numStr = i < 10 ? `0${i}` : `${i}`;
+                students.push({
+                    id: Date.now() + i,
+                    name: `${numStr}`,
+                    initialTime: defaultTimeSeconds,
+                    remainingTime: defaultTimeSeconds,
+                    task: defaultTaskName,
+                    isRunning: false,
+                    isCompleted: false,
+                    isFailed: false
+                });
+            }
+            renderGrid();
+        }
+
+        // 格式化時間 (mm:ss)
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // 渲染 1~30 號圓形號碼格
+        function renderGrid() {
+            const container = document.getElementById('grid-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (students.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                updateStats();
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+
+            const radius = 42;
+            const circumference = 2 * Math.PI * radius;
+
+            container.innerHTML = students.map(s => {
+                // 核心四大顏色狀態判斷
+                let cardStatusClass = 'status-default'; // 🔵 未開始：天空藍
+                let ringStrokeColor = '#38bdf8';
+                let numColorClass = 'text-sky-700';
+                let statusBadgeText = '';
+
+                if (s.isCompleted) {
+                    cardStatusClass = 'status-completed'; // 🟢 任務完成：草綠色
+                    ringStrokeColor = '#22c55e';
+                    numColorClass = 'text-emerald-700';
+                    statusBadgeText = '<span class="text-xs text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> 完成</span>';
+                } else if (s.isFailed) {
+                    cardStatusClass = 'status-failed'; // 🔴 任務失敗/超時：珊瑚紅
+                    ringStrokeColor = '#f43f5e';
+                    numColorClass = 'text-rose-700';
+                    statusBadgeText = '<span class="text-xs text-rose-700 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 超時</span>';
+                } else if (s.isRunning) {
+                    cardStatusClass = 'status-running'; // 🟡 進行中/按下去：活力黃
+                    ringStrokeColor = '#eab308';
+                    numColorClass = 'text-amber-800';
+                    statusBadgeText = '<span class="text-xs text-amber-800 font-bold animate-pulse"><i class="fa-solid fa-spinner fa-spin"></i> 計時中</span>';
+                } else if (s.remainingTime < s.initialTime) {
+                    // 暫停狀態
+                    cardStatusClass = 'bg-amber-50 border-amber-300';
+                    ringStrokeColor = '#f59e0b';
+                    numColorClass = 'text-amber-800';
+                    statusBadgeText = '<span class="text-xs text-amber-700 font-bold"><i class="fa-solid fa-pause"></i> 暫停</span>';
+                }
+
+                // 環形進度計算
+                const progressRatio = s.initialTime > 0 ? (s.remainingTime / s.initialTime) : 0;
+                const strokeDashoffset = circumference - (progressRatio * circumference);
+
+                return `
+                    <div class="relative flex flex-col items-center group">
+                        <!-- 圓形號碼格 (單擊切換開始/暫停) -->
+                        <div 
+                            onclick="handleCircleClick(${s.id})"
+                            class="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 shadow-md ${cardStatusClass}"
+                        >
+                            <!-- SVG 外圈動態環形進度條 -->
+                            <svg class="absolute inset-0 w-full h-full p-1" viewBox="0 0 100 100">
+                                <circle 
+                                    cx="50" cy="50" r="${radius}" 
+                                    stroke="rgba(0,0,0,0.06)" stroke-width="6" fill="transparent" 
+                                />
+                                <circle 
+                                    cx="50" cy="50" r="${radius}" 
+                                    stroke="${ringStrokeColor}" stroke-width="7" fill="transparent"
+                                    stroke-dasharray="${circumference}"
+                                    stroke-dashoffset="${strokeDashoffset}"
+                                    stroke-linecap="round"
+                                    class="progress-ring-circle"
+                                />
+                            </svg>
+
+                            <!-- 卡片右上角快捷鈕：完成 ✓ -->
+                            <button 
+                                onclick="event.stopPropagation(); toggleStudentCompleted(${s.id})" 
+                                class="absolute top-0 right-0 w-8 h-8 rounded-full ${s.isCompleted ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-600 hover:bg-emerald-100'} flex items-center justify-center text-sm z-20 border border-slate-200 shadow-md transition"
+                                title="標記為完成"
+                            >
+                                <i class="fa-solid fa-check font-black"></i>
+                            </button>
+
+                            <!-- 卡片左上角快捷鈕：設定 ⚙ / 重置 ↻ -->
+                            <div class="absolute top-0 left-0 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition">
+                                <button 
+                                    onclick="event.stopPropagation(); openSingleEditModal(${s.id})" 
+                                    class="w-7 h-7 rounded-full bg-white hover:bg-sky-500 text-slate-500 hover:text-white flex items-center justify-center text-xs border border-slate-200 shadow"
+                                    title="個別設定"
+                                >
+                                    <i class="fa-solid fa-gear"></i>
+                                </button>
+                                <button 
+                                    onclick="event.stopPropagation(); resetSingleStudent(${s.id})" 
+                                    class="w-7 h-7 rounded-full bg-white hover:bg-amber-500 text-slate-500 hover:text-white flex items-center justify-center text-xs border border-slate-200 shadow"
+                                    title="重置該號"
+                                >
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </button>
+                            </div>
+
+                            <!-- 超清晰大號碼字體 (Fredoka) -->
+                            <span class="font-num text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight ${numColorClass} leading-none z-10 -mt-1">
+                                ${escapeHtml(s.name)}
+                            </span>
+
+                            <!-- 倒數時間 mm:ss -->
+                            <span class="font-num text-xs sm:text-sm md:text-base font-bold tracking-wider text-slate-700 z-10 mt-1">
+                                ${s.isCompleted ? '✓ 完成' : formatTime(s.remainingTime)}
+                            </span>
+
+                            <!-- 狀態小標籤 -->
+                            <div class="z-10 -mb-1">
+                                ${statusBadgeText}
+                            </div>
+                        </div>
+
+                        <!-- 下方任務標籤 -->
+                        <div class="mt-2 w-full text-center">
+                            <span 
+                                onclick="openSingleEditModal(${s.id})"
+                                class="inline-block max-w-[110px] sm:max-w-[130px] truncate px-3 py-1 bg-white hover:bg-sky-50 text-slate-700 font-bold text-xs rounded-full border border-slate-300 shadow-sm cursor-pointer transition"
+                            >
+                                📌 ${escapeHtml(s.task)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateStats();
+        }
+
+        // 更新頂部儀表板統計數據
+        function updateStats() {
+            document.getElementById('stat-default').innerText = students.filter(s => !s.isRunning && !s.isCompleted && !s.isFailed && s.remainingTime === s.initialTime).length;
+            document.getElementById('stat-running').innerText = students.filter(s => s.isRunning).length;
+            document.getElementById('stat-failed').innerText = students.filter(s => s.isFailed).length;
+            document.getElementById('stat-completed').innerText = students.filter(s => s.isCompleted).length;
+        }
+
+        // 定時器每秒跑一次
+        function timerTick() {
+            let hasChange = false;
+
+            students.forEach(s => {
+                if (s.isRunning && !s.isCompleted && !s.isFailed) {
+                    if (s.remainingTime > 0) {
+                        s.remainingTime--;
+                        hasChange = true;
+                    }
+
+                    if (s.remainingTime === 0) {
+                        s.isRunning = false;
+                        s.isFailed = true; // 🔴 轉為珊瑚紅 (超時失敗)
+                        hasChange = true;
+                        triggerAlert(s);
+                    }
+                }
+            });
+
+            if (hasChange) {
+                renderGrid();
+            }
+        }
+
+        // 觸發時間到提醒
+        function triggerAlert(student) {
+            alertTargetStudentId = student.id;
+            playChime();
+            document.getElementById('alert-student-name').innerText = `${student.name} 號`;
+            document.getElementById('alert-task-name').innerText = `任務：${student.task}`;
+            openModal('modal-alert');
+        }
+
+        // 點擊圓格切換「開始倒數 ↔ 暫停」
+        function handleCircleClick(id) {
+            const s = students.find(item => item.id === id);
+            if (!s) return;
+
+            if (s.isCompleted || s.isFailed) {
+                // 若已完成或已失敗，點擊將其重置並開始
+                s.isCompleted = false;
+                s.isFailed = false;
+                s.remainingTime = s.initialTime;
+                s.isRunning = true;
+            } else {
+                s.isRunning = !s.isRunning;
+            }
+            renderGrid();
+        }
+
+        // 標記/取消標記為完成 (🟢 草綠色)
+        function toggleStudentCompleted(id) {
+            const s = students.find(item => item.id === id);
+            if (!s) return;
+
+            s.isCompleted = !s.isCompleted;
+            s.isRunning = false;
+            s.isFailed = false;
+            renderGrid();
+        }
+
+        // 重置單一學生
+        function resetSingleStudent(id) {
+            const s = students.find(item => item.id === id);
+            if (!s) return;
+
+            s.isRunning = false;
+            s.isCompleted = false;
+            s.isFailed = false;
+            s.remainingTime = s.initialTime;
+            renderGrid();
+        }
+
+        // Alert Modal 中將學生標記為完成
+        function markAlertStudentCompleted() {
+            if (alertTargetStudentId) {
+                toggleStudentCompleted(alertTargetStudentId);
+            }
+            closeModal('modal-alert');
+        }
+
+        // --- 全體控制按鈕邏輯 ---
+        function startAllTimers() {
+            students.forEach(s => {
+                if (!s.isCompleted && !s.isFailed && s.remainingTime > 0) {
+                    s.isRunning = true;
+                }
+            });
+            renderGrid();
+        }
+
+        function pauseAllTimers() {
+            students.forEach(s => {
+                s.isRunning = false;
+            });
+            renderGrid();
+        }
+
+        function resetAllTimers() {
+            students.forEach(s => {
+                s.isRunning = false;
+                s.isCompleted = false;
+                s.isFailed = false;
+                s.remainingTime = s.initialTime;
+            });
+            renderGrid();
+        }
+
+        // --- MODAL 視窗控制與資料處理 ---
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // 批次預設 Modal
+        function openGlobalPresetModal() {
+            populateTaskSelect('global-task-input', defaultTaskName);
+            document.getElementById('global-min').value = Math.floor(defaultTimeSeconds / 60);
+            document.getElementById('global-sec').value = defaultTimeSeconds % 60;
+            openModal('modal-global-preset');
+        }
+
+        function setGlobalTimeQuick(min, sec) {
+            document.getElementById('global-min').value = min;
+            document.getElementById('global-sec').value = sec;
+        }
+
+        function applyGlobalPreset() {
+            const min = parseInt(document.getElementById('global-min').value) || 0;
+            const sec = parseInt(document.getElementById('global-sec').value) || 0;
+            const task = document.getElementById('global-task-input').value;
+
+            defaultTimeSeconds = (min * 60) + sec;
+            defaultTaskName = task;
+
+            students.forEach(s => {
+                s.task = task;
+                s.initialTime = defaultTimeSeconds;
+                if (!s.isRunning) {
+                    s.remainingTime = defaultTimeSeconds;
+                    s.isCompleted = false;
+                    s.isFailed = false;
+                }
+            });
+
+            closeModal('modal-global-preset');
+            renderGrid();
+        }
+
+        // 單一號碼格微調 Modal
+        function openSingleEditModal(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById('single-student-id').value = id;
+            document.getElementById('single-title').innerText = `${student.name} 號`;
+            populateTaskSelect('single-task-select', student.task);
+
+            document.getElementById('single-min').value = Math.floor(student.initialTime / 60);
+            document.getElementById('single-sec').value = student.initialTime % 60;
+
+            openModal('modal-single-edit');
+        }
+
+        function addSingleMinutes(mins) {
+            const minInput = document.getElementById('single-min');
+            let current = parseInt(minInput.value) || 0;
+            current = Math.max(0, current + mins);
+            minInput.value = current;
+        }
+
+        function saveSingleEdit() {
+            const id = parseInt(document.getElementById('single-student-id').value);
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            const min = parseInt(document.getElementById('single-min').value) || 0;
+            const sec = parseInt(document.getElementById('single-sec').value) || 0;
+            const task = document.getElementById('single-task-select').value;
+
+            const totalSec = (min * 60) + sec;
+            student.task = task;
+            student.initialTime = totalSec;
+
+            if (!student.isRunning) {
+                student.remainingTime = totalSec;
+                student.isCompleted = false;
+                student.isFailed = false;
+            }
+
+            closeModal('modal-single-edit');
+            renderGrid();
+        }
+
+        // 人數名單 Modal
+        function openManageStudentsModal() {
+            openModal('modal-manage-students');
+        }
+
+        function applyQuickGenerate() {
+            const count = parseInt(document.getElementById('gen-count').value) || 30;
+            quickGenerate(count);
+            closeModal('modal-manage-students');
+        }
+
+        function addNewStudent() {
+            const input = document.getElementById('add-single-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            students.push({
+                id: Date.now(),
+                name: name,
+                initialTime: defaultTimeSeconds,
+                remainingTime: defaultTimeSeconds,
+                task: defaultTaskName,
+                isRunning: false,
+                isCompleted: false,
+                isFailed: false
+            });
+
+            input.value = '';
+            closeModal('modal-manage-students');
+            renderGrid();
+        }
+
+        // 下拉選單填充 Helper
+        function populateTaskSelect(selectId, selectedValue) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = taskPresets.map(t => `
+                <option value="${escapeHtml(t)}" ${t === selectedValue ? 'selected' : ''}>${escapeHtml(t)}</option>
+            `).join('');
+        }
+
+        // XSS 安全防護
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
